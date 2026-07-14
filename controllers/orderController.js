@@ -86,3 +86,61 @@ export async function createOrder(obj) {
     throw error;
   }
 }
+
+export async function orderUpdate(obj, orderId) {
+  const allOrders = await getOrders();
+  const theOrder = allOrders.find((o) => o.id === +orderId);
+  if (!theOrder) {
+    const error = new Error("Order not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const orderSchema = z
+    .object({
+      table: z.number().optional(),
+      customer: z.string().optional(),
+    })
+    .refine((data) => Object.keys(data).some((value) => value !== undefined), {
+      message: "At least one filter must be provided",
+    });
+
+  const orderDetails = orderSchema.safeParse(obj);
+
+  if (!orderDetails.success) {
+    const error = new Error(
+      `Missing required fields: ${orderDetails.error.message}`,
+    );
+    error.status = 400;
+    throw error;
+  }
+
+  const { table, customer } = obj;
+  // db update
+  theOrder.table = table ?? theOrder.table;
+  theOrder.customer = customer ?? theOrder.customer;
+
+  await writeToFile(ORDERS, allOrders);
+
+  return theOrder;
+}
+
+export async function deleteOrder(orderId) {
+  const allOrders = await getOrders();
+  const theOrder = allOrders.find((o) => o.id === +orderId);
+  if (!theOrder) {
+    const error = new Error("Order not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const final = allOrders.filter((order) => order.id !== +orderId);
+  if (final.length === 0) {
+    const error = new Error("Error while trying to delete the order");
+    throw error;
+  }
+
+  await writeToFile(ORDERS, final);
+
+  return { success: true };
+}
