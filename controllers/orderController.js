@@ -144,3 +144,31 @@ export async function deleteOrder(orderId) {
 
   return { success: true };
 }
+
+export async function statusUpdate(orderId, status) {
+  const allOrders = await getOrders();
+  const theOrder = allOrders.find((o) => o.id === +orderId);
+  if (!theOrder) {
+    const error = new Error("Order not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const ALLOWED_TRANSITIONS = {
+    NEW: ["PREPARING", "CANCELLED"],
+    PREPARING: ["READY", "CANCELLED"],
+    READY: ["DELIVERED"],
+  };
+
+  if (!ALLOWED_TRANSITIONS[theOrder.status]?.includes(status)) {
+    const error = new Error(
+      `Invalid status transition from ${theOrder.status} to ${status}`,
+    );
+    error.status = 400;
+    throw error;
+  }
+  theOrder.status = status;
+  await writeToFile(ORDERS, allOrders);
+
+  return theOrder;
+}

@@ -6,6 +6,7 @@ import {
   createOrder,
   orderUpdate,
   deleteOrder,
+  statusUpdate,
 } from "../controllers/orderController.js";
 
 const router = express.Router();
@@ -67,6 +68,13 @@ router.delete("/:id", async (req, res, next) => {
 });
 
 router.patch("/:id/status", async (req, res, next) => {
+  const orderId = req.params.id;
+  const status = req.params.status;
+
+  //update ststus
+  const result = await statusUpdate(orderId, status);
+
+  return res.status(201).json({ success: true, data: result });
   try {
   } catch (error) {
     next(error);
